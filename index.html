@@ -1,1 +1,115 @@
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+
+const GAME_WIDTH = 800;
+const GAME_HEIGHT = 500;
+const GRAVITY = 0.5;
+const JUMP_STRENGTH = -8;
+const PIPE_WIDTH = 80;
+const PIPE_GAP = 180;
+const PIPE_SPEED = 4;
+
+export default function FlappyPug() {
+  const [pugY, setPugY] = useState(GAME_HEIGHT / 2);
+  const [velocity, setVelocity] = useState(0);
+  const [pipes, setPipes] = useState([{ x: GAME_WIDTH, height: 200 }]);
+  const [gameOver, setGameOver] = useState(false);
+  const gameRef = useRef(null);
+
+  useEffect(() => {
+    const handleJump = () => {
+      if (!gameOver) setVelocity(JUMP_STRENGTH);
+    };
+    window.addEventListener("keydown", handleJump);
+    return () => window.removeEventListener("keydown", handleJump);
+  }, [gameOver]);
+
+  useEffect(() => {
+    if (gameOver) return;
+
+    const interval = setInterval(() => {
+      setPugY((prev) => Math.min(GAME_HEIGHT - 40, prev + velocity));
+      setVelocity((prev) => prev + GRAVITY);
+
+      setPipes((prev) =>
+        prev.map((pipe) => ({ ...pipe, x: pipe.x - PIPE_SPEED })).filter((pipe) => pipe.x + PIPE_WIDTH > 0)
+      );
+
+      if (pipes.length === 0 || pipes[pipes.length - 1].x < GAME_WIDTH - 300) {
+        const height = Math.random() * (GAME_HEIGHT - PIPE_GAP - 100) + 50;
+        setPipes([...pipes, { x: GAME_WIDTH, height }]);
+      }
+
+      pipes.forEach((pipe) => {
+        if (
+          (pipe.x < 100 && pipe.x + PIPE_WIDTH > 60 &&
+            (pugY < pipe.height || pugY > pipe.height + PIPE_GAP)) ||
+          pugY >= GAME_HEIGHT - 40
+        ) {
+          setGameOver(true);
+        }
+      });
+    }, 30);
+
+    return () => clearInterval(interval);
+  }, [pugY, velocity, pipes, gameOver]);
+
+  return (
+    <div
+      ref={gameRef}
+      style={{
+        position: "relative",
+        width: GAME_WIDTH,
+        height: GAME_HEIGHT,
+        overflow: "hidden",
+        backgroundImage: `url('/mnt/data/outdoor-backyard-background-cartoon-illustration-vector-home-sunny-suburb-patio-courtyard-area-grass-fence-93780382.webp')`,
+        backgroundSize: "cover",
+      }}
+    >
+      <motion.img
+        src="/mnt/data/pngtree-pug-dog-mascot-domestic-png-image_13229624.png"
+        alt="Pug"
+        style={{ position: "absolute", left: 60, top: pugY, width: 40 }}
+      />
+      {pipes.map((pipe, index) => (
+        <>
+          <motion.img
+            key={index + "top"}
+            src="/mnt/data/super-mario-pipes-green-pipes-video-game-free-vector.jpg"
+            alt="Pipe Top"
+            style={{ position: "absolute", left: pipe.x, top: 0, width: PIPE_WIDTH, height: pipe.height }}
+          />
+          <motion.img
+            key={index + "bottom"}
+            src="/mnt/data/super-mario-pipes-green-pipes-video-game-free-vector.jpg"
+            alt="Pipe Bottom"
+            style={{
+              position: "absolute",
+              left: pipe.x,
+              top: pipe.height + PIPE_GAP,
+              width: PIPE_WIDTH,
+              height: GAME_HEIGHT - (pipe.height + PIPE_GAP),
+            }}
+          />
+        </>
+      ))}
+      {gameOver && (
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            background: "rgba(0,0,0,0.5)",
+            padding: "20px",
+            color: "white",
+            fontSize: "24px",
+          }}
+        >
+          Game Over!
+        </div>
+      )}
+    </div>
+  );
+}
 
